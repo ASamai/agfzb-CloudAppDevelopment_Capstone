@@ -9,6 +9,11 @@ from django.contrib import messages
 from datetime import datetime
 import logging
 import json
+from .restapis import get_dealer_reviews_from_cf
+from django.urls import path
+from django.conf.urls.static import static
+from django.conf import settings
+from . import views
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -96,7 +101,30 @@ def get_dealerships(request):
 
 # Create a `get_dealer_details` view to render the reviews of a dealer
 # def get_dealer_details(request, dealer_id):
+def get_dealer_details(request, dealer_id):
+    context = {}
+
+    if request.method == "GET":
+        # Define the URL for the cloud function to get dealer reviews
+        url = "https://us-south.functions.appdomain.cloud/api/v1/web/7f9258a7-d155-4677-819c-5b772acda097/dealership-package/review-get"
+
+        # Call the get_dealer_reviews_from_cf method to get reviews for the specified dealer ID
+        dealer_reviews = get_dealer_reviews_from_cf(url, dealer_id)
+
+        # Append the list of reviews to the context
+        context['dealer_reviews'] = dealer_reviews
+
+        # Return an HTTP response, rendering the dealer details page with the list of reviews
+        return render(request, 'djangoapp/dealer_details.html', context)
 # ...
+app_name = 'djangoapp'
+urlpatterns = [
+    # ... Other paths
+    
+    # Example path for get_dealer_details view with dealer_id as an integer parameter
+    path('dealer/<int:dealer_id>/', views.get_dealer_details, name='dealer_details'),
+
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Create a `add_review` view to submit a review
 # def add_review(request, dealer_id):
